@@ -2,7 +2,7 @@
     {
         "url": "https://raw.githubusercontent.com/senkuboy0-cyber/English-Dubbed-provider/builds/Anichi.cs3",
         "status": 1,
-        "version": 3,
+        "version": 4,
         "name": "Anichi",
         "internalName": "Anichi",
         "authors": [
@@ -17,7 +17,7 @@
         ],
         "iconUrl": "https://raw.githubusercontent.com/phisher98/TVVVV/refs/heads/main/Icons/Allanime.png",
         "apiVersion": 1,
-        "fileHash": "sha256-5ebb4dbe7169d78d82cf5f48f3fa7d3f8c2954b11d1ad82c7e424f623512204b",
+        "fileHash": "sha256-9cff70651cf7310e799a9e3989a4e8925c4507c0207ffe037ff1557fdd5e316d",
         "jarFileSize": 543696,
         "jarUrl": "https://raw.githubusercontent.com/senkuboy0-cyber/English-Dubbed-provider/builds/Anichi.jar",
         "jarHash": "sha256-b66da8023bf533f8cfb00b36d760931cfe3883ab11e4f6c265d87a18928b5893"
