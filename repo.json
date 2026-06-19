@@ -1,6 +1,6 @@
 {
   "name": "English Dubbed Provider",
-  "description": "AniDB - English Dubbed Anime Streaming Extension",
+  "description": "English Dubbed Anime Streaming Extensions (AniDb + Anichi)",
   "manifestVersion": 1,
   "pluginLists": [
     "https://raw.githubusercontent.com/senkuboy0-cyber/English-Dubbed-provider/builds/plugins.json"
