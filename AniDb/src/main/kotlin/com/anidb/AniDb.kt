@@ -38,18 +38,19 @@ class AniDb : MainAPI() {
     override val hasMainPage = true
 
     override val mainPage = mainPageOf(
-        "$mainUrl/browse?q=&type=&status=&season=&year=&genres=&sort=order_top_airing&page=" to "Top Airing",
-        "$mainUrl/browse?q=&type=&status=&season=&year=&genres=&sort=order_popular&page=" to "Popular",
-        "$mainUrl/browse?q=&type=&status=&season=&year=&genres=&sort=order_updated&page=" to "Recently Updated",
-        "$mainUrl/browse?q=&type=&status=&season=&year=&genres=&sort=aired_start&page=" to "Recently Aired",
-        "$mainUrl/browse?q=&type=&status=Currently+Airing&season=&year=&genres=&sort=order_favorite&page=" to "Currently Airing",
-        "$mainUrl/browse?type=TV&page=" to "TV Series",
-        "$mainUrl/browse?type=Movie&page=" to "Movies",
-        "$mainUrl/browse?type=ONA&page=" to "ONA",
-        "$mainUrl/browse?type=OVA&page=" to "OVA",
-        "$mainUrl/browse?type=Special&page=" to "Specials",
-        "$mainUrl/browse?q=&type=&status=Finished+Airing&season=&year=&genres=&sort=order_favorite&page=" to "Finished Airing"
+        "https://anidb.app/browse?sort=order_updated" to "Recently Updated",
+        "https://anidb.app/browse?sort=order_popular" to "Popular",
+        "https://anidb.app/genres/13" to "Genres 13",
+        "https://anidb.app/themes/9" to "Themes 9",
+        "https://anidb.app/themes/6" to "Themes 6",
+        "https://anidb.app/browse?type=TV&sort=order_top" to "Top TV",
+        "https://anidb.app/browse?type=Movie" to "Movies",
+        "https://anidb.app/browse?sort=order_top_airing&status=Currently+Airing" to "Top Airing",
+        "https://anidb.app/browse?type=ONA&sort=order_top" to "Top ONA",
+        "https://anidb.app/browse?type=OVA&sort=order_top" to "Top OVA",
+        "https://anidb.app/themes/13" to "Themes 13"
     )
+
     private fun searchResponseBuilder(res: Document): List<AnimeSearchResponse> {
         val results = mutableListOf<AnimeSearchResponse>()
         res.select("a.anime-card").forEach { item ->
@@ -69,7 +70,8 @@ class AniDb : MainAPI() {
     }
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val url = request.data + page.toString()
+        val separator = if (request.data.contains("?")) "&" else "?"
+        val url = "${request.data}${separator}page=$page"
         val res = app.get(url).document
         val searchRes = searchResponseBuilder(res)
         return newHomePageResponse(request.name, searchRes)
