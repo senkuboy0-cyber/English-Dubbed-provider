@@ -1,0 +1,27 @@
+[
+    {
+        "url": "https://raw.githubusercontent.com/senkuboy0-cyber/English-Dubbed-provider/builds/AniDb.cs3",
+        "status": 1,
+        "version": 1,
+        "name": "AniDb",
+        "internalName": "AniDb",
+        "authors": [
+            "senkuboy0-cyber"
+        ],
+        "description": "Animes",
+        "fileSize": 28886,
+        "repositoryUrl": "https://github.com/senkuboy0-cyber/English-Dubbed-provider",
+        "language": "en",
+        "tvTypes": [
+            "Anime",
+            "AnimeMovie",
+            "OVA"
+        ],
+        "iconUrl": "https://anidb.app/images/fav-512.png",
+        "apiVersion": 1,
+        "fileHash": "sha256-d805d3b7a213eaa7beb9e45c1c3dedf58a38807dd8091b54406a977ae79c12a6",
+        "jarFileSize": 100645,
+        "jarUrl": "https://raw.githubusercontent.com/senkuboy0-cyber/English-Dubbed-provider/builds/AniDb.jar",
+        "jarHash": "sha256-77db17438e48ce1e1066c5953d4f18b6574a6bb36e3fcc8d71ae682508e59bc6"
+    }
+]
