@@ -2,14 +2,14 @@
     {
         "url": "https://raw.githubusercontent.com/senkuboy0-cyber/English-Dubbed-provider/builds/AniDb.cs3",
         "status": 1,
-        "version": 2,
+        "version": 4,
         "name": "AniDb",
         "internalName": "AniDb",
         "authors": [
             "senkuboy0-cyber"
         ],
         "description": "Animes",
-        "fileSize": 28869,
+        "fileSize": 28879,
         "repositoryUrl": "https://github.com/senkuboy0-cyber/English-Dubbed-provider",
         "language": "en",
         "tvTypes": [
@@ -19,9 +19,9 @@
         ],
         "iconUrl": "https://anidb.app/images/fav-512.png",
         "apiVersion": 1,
-        "fileHash": "sha256-07ded4c95faaf3c72f34c041db07861ee895cb95510a730df3576ad4b06fbd44",
-        "jarFileSize": 100503,
+        "fileHash": "sha256-cbfbf83cefda5dca0040c0749c7afd33e1a0d4236950e084ef19c0e68a79c3d0",
+        "jarFileSize": 100496,
         "jarUrl": "https://raw.githubusercontent.com/senkuboy0-cyber/English-Dubbed-provider/builds/AniDb.jar",
-        "jarHash": "sha256-0de0793dc8ef0e91ca2da705d7c440f39fd51180e73d01e310b98edf4627c20e"
+        "jarHash": "sha256-93ce201c500d890d7d2098d6ab571917f9c0ddc6f952ae450c4ec4839831f0fc"
     }
 ]
