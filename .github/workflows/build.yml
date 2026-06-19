@@ -41,7 +41,7 @@ jobs:
           echo '{
             "name": "English Dubbed Provider",
             "iconUrl": "https://i.pinimg.com/originals/11/01/ab/1101ab41e397528d8d813b426741548c.jpg",
-            "description": "English Dubbed Anime Streaming Extensions (AniDb + Anichi)",
+            "description": "English Dubbed Anime Streaming Extensions",
             "manifestVersion": 1,
             "pluginLists": [
               "https://raw.githubusercontent.com/senkuboy0-cyber/English-Dubbed-provider/builds/plugins.json"
