@@ -9,7 +9,7 @@
             "senkuboy0-cyber"
         ],
         "description": "Animes",
-        "fileSize": 28886,
+        "fileSize": 28869,
         "repositoryUrl": "https://github.com/senkuboy0-cyber/English-Dubbed-provider",
         "language": "en",
         "tvTypes": [
@@ -19,9 +19,9 @@
         ],
         "iconUrl": "https://anidb.app/images/fav-512.png",
         "apiVersion": 1,
-        "fileHash": "sha256-d805d3b7a213eaa7beb9e45c1c3dedf58a38807dd8091b54406a977ae79c12a6",
-        "jarFileSize": 100645,
+        "fileHash": "sha256-aabf6b40708f3c8950fa4ccd07feeb3c3192a0ca1039f10daa98041bb3f1b66b",
+        "jarFileSize": 100503,
         "jarUrl": "https://raw.githubusercontent.com/senkuboy0-cyber/English-Dubbed-provider/builds/AniDb.jar",
-        "jarHash": "sha256-77db17438e48ce1e1066c5953d4f18b6574a6bb36e3fcc8d71ae682508e59bc6"
+        "jarHash": "sha256-0de0793dc8ef0e91ca2da705d7c440f39fd51180e73d01e310b98edf4627c20e"
     }
 ]
