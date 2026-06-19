@@ -8,7 +8,7 @@
         "authors": [
             "senkuboy0-cyber"
         ],
-        "fileSize": 98703,
+        "fileSize": 98707,
         "repositoryUrl": "https://github.com/senkuboy0-cyber/English-Dubbed-provider",
         "tvTypes": [
             "AnimeMovie",
@@ -17,10 +17,10 @@
         ],
         "iconUrl": "https://raw.githubusercontent.com/phisher98/TVVVV/refs/heads/main/Icons/Allanime.png",
         "apiVersion": 1,
-        "fileHash": "sha256-b4c6c1c12aa65704ded73c2f4967f04f9a8d33f167c8f85cbf2686e3023286e1",
-        "jarFileSize": 543989,
+        "fileHash": "sha256-5ebb4dbe7169d78d82cf5f48f3fa7d3f8c2954b11d1ad82c7e424f623512204b",
+        "jarFileSize": 543696,
         "jarUrl": "https://raw.githubusercontent.com/senkuboy0-cyber/English-Dubbed-provider/builds/Anichi.jar",
-        "jarHash": "sha256-0a04462b2fc5757bedddf3783b8edc4c19c78ae616b93a0cfcc1de43304d37bb"
+        "jarHash": "sha256-b66da8023bf533f8cfb00b36d760931cfe3883ab11e4f6c265d87a18928b5893"
     },
     {
         "url": "https://raw.githubusercontent.com/senkuboy0-cyber/English-Dubbed-provider/builds/AniDb.cs3",
