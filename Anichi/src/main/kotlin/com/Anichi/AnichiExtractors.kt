@@ -1,5 +1,6 @@
 package com.Anichi
 
+import com.Anichi.AnichiParser.AnichiDownload
 import com.Anichi.AnichiParser.AnichiVideoApiResponse
 import com.Anichi.AnichiParser.LinksQuery
 import com.Anichi.AnichiUtils.fixSourceUrls
@@ -152,7 +153,7 @@ object AnichiExtractors : Anichi() {
                     val downloadId = downloadUrl.substringAfter("id=", "")
                     if (downloadId.isNotEmpty()) {
                         val sourcename = downloadUrl.getHost()
-                        val clockApi = "https://allanime.day/apivtwo/clock.json?id=$downloadId"
+                        val clockApi = "https://api.allanime.day/apivtwo/clock.json?id=$downloadId"
                         try {
                             val downloads = app.get(clockApi).parsedSafe<AnichiDownload>()?.links ?: emptyList()
                             downloads.forEach { item ->
