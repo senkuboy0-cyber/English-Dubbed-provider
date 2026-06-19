@@ -2,7 +2,7 @@
     {
         "url": "https://raw.githubusercontent.com/senkuboy0-cyber/English-Dubbed-provider/builds/AniDb.cs3",
         "status": 1,
-        "version": 1,
+        "version": 2,
         "name": "AniDb",
         "internalName": "AniDb",
         "authors": [
@@ -19,7 +19,7 @@
         ],
         "iconUrl": "https://anidb.app/images/fav-512.png",
         "apiVersion": 1,
-        "fileHash": "sha256-aabf6b40708f3c8950fa4ccd07feeb3c3192a0ca1039f10daa98041bb3f1b66b",
+        "fileHash": "sha256-07ded4c95faaf3c72f34c041db07861ee895cb95510a730df3576ad4b06fbd44",
         "jarFileSize": 100503,
         "jarUrl": "https://raw.githubusercontent.com/senkuboy0-cyber/English-Dubbed-provider/builds/AniDb.jar",
         "jarHash": "sha256-0de0793dc8ef0e91ca2da705d7c440f39fd51180e73d01e310b98edf4627c20e"
