@@ -60,7 +60,12 @@ subprojects {
     }
 
     android {
-        namespace = "com.anidb"
+        // Set namespace based on module name
+        namespace = when (project.name) {
+            "AniDb" -> "com.anidb"
+            "Anichi" -> "com.Anichi"
+            else -> "com.${project.name.lowercase()}"
+        }
         compileSdk = 36
 
         defaultConfig {
