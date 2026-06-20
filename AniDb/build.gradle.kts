@@ -1,5 +1,5 @@
 // use an integer for version numbers
-version = 4
+version = 5
 
 
 cloudstream {
@@ -16,7 +16,7 @@ cloudstream {
     * 3: Beta only
     * */
     status = 1
-    tvTypes = listOf("Anime", "AnimeMovie", "OVA")
+    tvTypes = listOf("Anime")
     language = "en"
     iconUrl = "https://anidb.app/images/fav-512.png"
     isCrossPlatform = true
