@@ -70,5 +70,30 @@
         "jarFileSize": 164291,
         "jarUrl": "https://raw.githubusercontent.com/senkuboy0-cyber/English-Dubbed-provider/builds/Anikage.jar",
         "jarHash": "sha256-a8866374a15abd4736b38dc769387e85663b76f1e16606569539758e604479d6"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/senkuboy0-cyber/English-Dubbed-provider/builds/Anineko.cs3",
+        "status": 1,
+        "version": 1,
+        "name": "Anineko",
+        "internalName": "Anineko",
+        "authors": [
+            "senkuboy0-cyber"
+        ],
+        "description": "Anime from Anineko",
+        "fileSize": 31787,
+        "repositoryUrl": "https://github.com/senkuboy0-cyber/English-Dubbed-provider",
+        "language": "en",
+        "tvTypes": [
+            "Anime",
+            "AnimeMovie",
+            "OVA"
+        ],
+        "iconUrl": "https://raw.githubusercontent.com/phisher98/TVVVV/refs/heads/main/Icons/Anineko.png",
+        "apiVersion": 1,
+        "fileHash": "sha256-89b7ceec319a5d8d1aa79c150a73f0e19b3315a1915f7cd241bfecc37a926a87",
+        "jarFileSize": 127425,
+        "jarUrl": "https://raw.githubusercontent.com/senkuboy0-cyber/English-Dubbed-provider/builds/Anineko.jar",
+        "jarHash": "sha256-e3c802d55e8aeab7bcfb32087435738c06335026ff6372b7650bf1c1143dccd4"
     }
 ]
