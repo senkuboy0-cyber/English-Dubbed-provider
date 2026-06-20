@@ -46,5 +46,29 @@
         "jarFileSize": 100496,
         "jarUrl": "https://raw.githubusercontent.com/senkuboy0-cyber/English-Dubbed-provider/builds/AniDb.jar",
         "jarHash": "sha256-93ce201c500d890d7d2098d6ab571917f9c0ddc6f952ae450c4ec4839831f0fc"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/senkuboy0-cyber/English-Dubbed-provider/builds/Anikage.cs3",
+        "status": 1,
+        "version": 1,
+        "name": "Anikage",
+        "internalName": "Anikage",
+        "authors": [
+            "senkuboy0-cyber"
+        ],
+        "fileSize": 29370,
+        "repositoryUrl": "https://github.com/senkuboy0-cyber/English-Dubbed-provider",
+        "language": "en",
+        "tvTypes": [
+            "AnimeMovie",
+            "Anime",
+            "OVA"
+        ],
+        "iconUrl": "https://www.google.com/s2/favicons?sz=64&domain=https://anikage.cc/",
+        "apiVersion": 1,
+        "fileHash": "sha256-eebf16105183e0a1b495853eb4842c9016db5a2f21a2409dd45ebc1f2ec961ff",
+        "jarFileSize": 164291,
+        "jarUrl": "https://raw.githubusercontent.com/senkuboy0-cyber/English-Dubbed-provider/builds/Anikage.jar",
+        "jarHash": "sha256-a8866374a15abd4736b38dc769387e85663b76f1e16606569539758e604479d6"
     }
 ]
