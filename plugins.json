@@ -2,7 +2,7 @@
     {
         "url": "https://raw.githubusercontent.com/senkuboy0-cyber/English-Dubbed-provider/builds/Anichi.cs3",
         "status": 1,
-        "version": 4,
+        "version": 5,
         "name": "Anichi",
         "internalName": "Anichi",
         "authors": [
@@ -10,14 +10,13 @@
         ],
         "fileSize": 98707,
         "repositoryUrl": "https://github.com/senkuboy0-cyber/English-Dubbed-provider",
+        "language": "en",
         "tvTypes": [
-            "AnimeMovie",
-            "Anime",
-            "OVA"
+            "Anime"
         ],
         "iconUrl": "https://raw.githubusercontent.com/phisher98/TVVVV/refs/heads/main/Icons/Allanime.png",
         "apiVersion": 1,
-        "fileHash": "sha256-9cff70651cf7310e799a9e3989a4e8925c4507c0207ffe037ff1557fdd5e316d",
+        "fileHash": "sha256-53f552ef8e2bba80be613d6263022aefb4c71c1efd273da1089a5fc1e067ef75",
         "jarFileSize": 543696,
         "jarUrl": "https://raw.githubusercontent.com/senkuboy0-cyber/English-Dubbed-provider/builds/Anichi.jar",
         "jarHash": "sha256-b66da8023bf533f8cfb00b36d760931cfe3883ab11e4f6c265d87a18928b5893"
