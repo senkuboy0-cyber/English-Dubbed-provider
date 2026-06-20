@@ -1,4 +1,4 @@
-version = 1
+version = 2
 
 android {
     buildFeatures {
@@ -10,7 +10,7 @@ cloudstream {
     language = "en"
     authors = listOf("senkuboy0-cyber")
     status = 1
-    tvTypes = listOf("AnimeMovie", "Anime", "OVA")
+    tvTypes = listOf("Anime")
     isCrossPlatform = true
     iconUrl = "https://www.google.com/s2/favicons?sz=64&domain=https://anikage.cc/"
 }
