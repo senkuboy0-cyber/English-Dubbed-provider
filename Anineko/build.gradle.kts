@@ -1,5 +1,5 @@
 // use an integer for version numbers
-version = 1
+version = 2
 
 
 cloudstream {
@@ -16,7 +16,7 @@ cloudstream {
      * 3: Beta only
      * */
     status = 1
-    tvTypes = listOf("Anime", "AnimeMovie", "OVA")
+    tvTypes = listOf("Anime")
     language = "en"
     iconUrl = "https://raw.githubusercontent.com/phisher98/TVVVV/refs/heads/main/Icons/Anineko.png"
     isCrossPlatform = true
