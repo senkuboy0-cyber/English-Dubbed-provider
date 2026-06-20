@@ -34,11 +34,13 @@ jobs:
           ./gradlew AniDb:make
           ./gradlew Anichi:make
           ./gradlew Anikage:make
+          ./gradlew Anineko:make
           ./gradlew makePluginsJson
           mkdir -p build_output
           cp AniDb/build/*.cs3 build_output/ || true
           cp Anichi/build/*.cs3 build_output/ || true
           cp Anikage/build/*.cs3 build_output/ || true
+          cp Anineko/build/*.cs3 build_output/ || true
           cp build/plugins.json build_output/plugins.json
           echo '{
             "name": "English Dubbed Provider",
