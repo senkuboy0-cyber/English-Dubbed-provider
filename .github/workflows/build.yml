@@ -44,7 +44,7 @@ jobs:
           cp build/plugins.json build_output/plugins.json
           echo '{
             "name": "English Dubbed Provider",
-            "iconUrl": "https://raw.githubusercontent.com/senkuboy0-cyber/English-Dubbed-provider/main/assets/repo-icon.jpg",
+            "iconUrl": "https://raw.githubusercontent.com/senkuboy0-cyber/English-Dubbed-provider/refs/heads/main/assets/repo-icon.png",
             "description": "English Dubbed Anime Streaming Extensions",
             "manifestVersion": 1,
             "pluginLists": [
