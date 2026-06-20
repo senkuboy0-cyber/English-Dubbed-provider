@@ -64,6 +64,7 @@ subprojects {
         namespace = when (project.name) {
             "AniDb" -> "com.anidb"
             "Anichi" -> "com.Anichi"
+            "Anikage" -> "com.anikage"
             else -> "com.${project.name.lowercase()}"
         }
         compileSdk = 36
