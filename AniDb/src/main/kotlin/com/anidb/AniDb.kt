@@ -87,7 +87,7 @@ class AniDb : MainAPI() {
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val separator = if (request.data.contains("?")) "&" else "?"
-        val url = "\( {request.data} \){separator}page=$page"
+        val url = "${request.data}${separator}page=$page"
         val res = app.get(url).document
         val searchRes = searchResponseBuilder(res)
         return newHomePageResponse(request.name, searchRes)
