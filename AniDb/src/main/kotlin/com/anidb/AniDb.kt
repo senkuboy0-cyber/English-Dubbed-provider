@@ -53,32 +53,49 @@ class AniDb : MainAPI() {
 
     private fun searchResponseBuilder(res: Document): List<AnimeSearchResponse> {
         val results = mutableListOf<AnimeSearchResponse>()
-        res.select("a.anime-card").forEach { item ->
-            val title = item.attr("title")
-            val url = item.attr("href")
-            val posterUrl = item.selectFirst("img")?.attr("src")
-            val ratingText = item.selectFirst("span.badge-gray")?.ownText()?.trim()
-            val rating = ratingText?.replace(Regex("[^0-9.]"), "")?.toDoubleOrNull()
-            results += newAnimeSearchResponse(title, url) {
-                this.posterUrl = posterUrl
-                if (rating != null) {
-                    this.score = Score.from10(rating.toString())
+        // Updated selectors after site redesign (July 2026)
+        val cardSelectors = listOf(
+            "a[href*='/anime/']", 
+            "[class*='card'] a[href*='/anime/']",
+            "h2 a, h3 a",
+            "article a"
+        )
+        
+        for (sel in cardSelectors) {
+            res.select(sel).forEach { link ->
+                val title = link.text().trim().ifBlank { link.attr("title") }
+                val url = link.attr("href")
+                if (title.isBlank() || !url.contains("/anime/")) return@forEach
+                
+                val item = link.parent() ?: link
+                val posterUrl = item.selectFirst("img")?.attr("src") 
+                    ?: link.selectFirst("img")?.attr("src")
+                
+                val ratingText = item.selectFirst("[class*='rating'], .score, span[class*='badge']")?.text()?.trim()
+                val rating = ratingText?.replace(Regex("[^0-9.]"), "")?.toDoubleOrNull()
+                
+                results += newAnimeSearchResponse(title, url) {
+                    this.posterUrl = posterUrl
+                    if (rating != null) {
+                        this.score = Score.from10(rating.toString())
+                    }
                 }
             }
+            if (results.isNotEmpty()) break
         }
         return results
     }
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val separator = if (request.data.contains("?")) "&" else "?"
-        val url = "${request.data}${separator}page=$page"
+        val url = "\( {request.data} \){separator}page=$page"
         val res = app.get(url).document
         val searchRes = searchResponseBuilder(res)
         return newHomePageResponse(request.name, searchRes)
     }
 
     override suspend fun search(query: String, page: Int): SearchResponseList {
-        val browseRes = app.get("$mainUrl/browse?q=$query").document
+        val browseRes = app.get("$mainUrl/browse?q=$query&page=$page").document
         return searchResponseBuilder(browseRes).toNewSearchResponseList()
     }
 
@@ -87,15 +104,20 @@ class AniDb : MainAPI() {
         val siteId = slug.substringAfterLast("-").toIntOrNull() ?: return null
 
         val doc = app.get(url).document
-        val title = doc.selectFirst("h1")?.text() ?: ""
-        val poster = doc.selectFirst("div.flex-shrink-0 img")?.attr("src")
-            ?: doc.selectFirst("meta[property=og:image]")?.attr("content")
-        val description = doc.selectFirst("meta[name=description]")?.attr("content")
-            ?: doc.selectFirst(".description")?.text()
+        val title = doc.selectFirst("h1")?.text() 
+            ?: doc.selectFirst("title")?.text()?.substringBefore("|")?.trim() ?: ""
 
-        val tags = doc.select("a.filter-chip").map { it.text() }
-        val year = doc.selectFirst("a[href*=&year=]")?.text()?.split(" ")?.lastOrNull()?.toIntOrNull()
-        val ratingText = doc.select("span.badge-gray").firstOrNull { it.text().contains(Regex("[0-9]")) }?.ownText()?.trim()
+        val poster = doc.selectFirst("img[src*='poster'], div img, meta[property=og:image]")?.attr("src")
+            ?: doc.selectFirst("meta[property=og:image]")?.attr("content")
+
+        val description = doc.selectFirst("meta[name=description]")?.attr("content")
+            ?: doc.selectFirst(".description, .synopsis, p")?.text()
+
+        val tags = doc.select("a[href*='genre'], a[href*='theme'], [class*='tag'], .badge").map { it.text() }.filter { it.isNotBlank() }
+        
+        val year = doc.selectFirst("a[href*='year='], time, [class*='year']")?.text()?.replace(Regex("\\D"), "")?.toIntOrNull()
+
+        val ratingText = doc.selectFirst("[class*='rating'], .score, span[class*='badge']")?.text()?.trim()
         val rating = ratingText?.replace(Regex("[^0-9.]"), "")?.toDoubleOrNull()
 
         val episodesUrl = "$mainUrl/api/frontend/anime/$siteId/episodes"
