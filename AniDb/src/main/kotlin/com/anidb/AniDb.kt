@@ -53,7 +53,6 @@ class AniDb : MainAPI() {
 
     private fun searchResponseBuilder(res: Document): List<AnimeSearchResponse> {
         val results = mutableListOf<AnimeSearchResponse>()
-        // Updated selectors after site redesign (July 2026)
         val cardSelectors = listOf(
             "a[href*='/anime/']", 
             "[class*='card'] a[href*='/anime/']",
@@ -115,7 +114,7 @@ class AniDb : MainAPI() {
 
         val tags = doc.select("a[href*='genre'], a[href*='theme'], [class*='tag'], .badge").map { it.text() }.filter { it.isNotBlank() }
         
-        val year = doc.selectFirst("a[href*='year='], time, [class*='year']")?.text()?.replace(Regex("\\D"), "")?.toIntOrNull()
+        val year = doc.selectFirst("a[href*='year='], time, [class*='year']")?.text()?.replace(Regex("[^0-9]"), "")?.toIntOrNull()
 
         val ratingText = doc.selectFirst("[class*='rating'], .score, span[class*='badge']")?.text()?.trim()
         val rating = ratingText?.replace(Regex("[^0-9.]"), "")?.toDoubleOrNull()
