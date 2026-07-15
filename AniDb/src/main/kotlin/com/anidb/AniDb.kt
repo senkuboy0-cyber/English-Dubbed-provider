@@ -10,14 +10,11 @@ import com.lagradost.cloudstream3.LoadResponse.Companion.addMalId
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
 import com.lagradost.cloudstream3.MainAPI
 import com.lagradost.cloudstream3.MainPageRequest
-import com.lagradost.cloudstream3.Score
 import com.lagradost.cloudstream3.SearchResponseList
 import com.lagradost.cloudstream3.ShowStatus
 import com.lagradost.cloudstream3.SubtitleFile
 import com.lagradost.cloudstream3.TvType
-import com.lagradost.cloudstream3.addDate
 import com.lagradost.cloudstream3.addEpisodes
-import com.lagradost.cloudstream3.amap
 import com.lagradost.cloudstream3.app
 import com.lagradost.cloudstream3.mainPageOf
 import com.lagradost.cloudstream3.newAnimeLoadResponse
@@ -67,17 +64,10 @@ class AniDb : MainAPI() {
                 if (title.isBlank() || !url.contains("/anime/")) return@forEach
                 
                 val item = link.parent() ?: link
-                val posterUrl = item.selectFirst("img")?.attr("src") 
-                    ?: link.selectFirst("img")?.attr("src")
-                
-                val ratingText = item.selectFirst("[class*='rating'], .score, span[class*='badge']")?.text()?.trim()
-                val rating = ratingText?.replace(Regex("[^0-9.]"), "")?.toDoubleOrNull()
+                val posterUrl = item.selectFirst("img")?.attr("src") ?: link.selectFirst("img")?.attr("src")
                 
                 results += newAnimeSearchResponse(title, url) {
                     this.posterUrl = posterUrl
-                    if (rating != null) {
-                        this.score = Score.from10(rating.toString())
-                    }
                 }
             }
             if (results.isNotEmpty()) break
@@ -103,21 +93,16 @@ class AniDb : MainAPI() {
         val siteId = slug.substringAfterLast("-").toIntOrNull() ?: return null
 
         val doc = app.get(url).document
-        val title = doc.selectFirst("h1")?.text() 
-            ?: doc.selectFirst("title")?.text()?.substringBefore("|")?.trim() ?: ""
+        val title = doc.selectFirst("h1")?.text() ?: doc.selectFirst("title")?.text()?.substringBefore("|")?.trim() ?: ""
 
-        val poster = doc.selectFirst("img[src*='poster'], div img, meta[property=og:image]")?.attr("src")
-            ?: doc.selectFirst("meta[property=og:image]")?.attr("content")
+        val poster = doc.selectFirst("img[src*='poster'], div img, meta[property=og:image]")?.attr("src") ?: doc.selectFirst("meta[property=og:image]")?.attr("content")
 
-        val description = doc.selectFirst("meta[name=description]")?.attr("content")
-            ?: doc.selectFirst(".description, .synopsis, p")?.text()
+        val description = doc.selectFirst("meta[name=description]")?.attr("content") ?: doc.selectFirst(".description, .synopsis, p")?.text()
 
         val tags = doc.select("a[href*='genre'], a[href*='theme'], [class*='tag'], .badge").map { it.text() }.filter { it.isNotBlank() }
         
-        val year = doc.selectFirst("a[href*='year='], time, [class*='year']")?.text()?.replace(Regex("[^0-9]"), "")?.toIntOrNull()
-
-        val ratingText = doc.selectFirst("[class*='rating'], .score, span[class*='badge']")?.text()?.trim()
-        val rating = ratingText?.replace(Regex("[^0-9.]"), "")?.toDoubleOrNull()
+        val yearText = doc.selectFirst("a[href*='year='], time, [class*='year']")?.text()?.replace(Regex("[^0-9]"), "")
+        val year = if (!yearText.isNullOrBlank()) yearText.toIntOrNull() else null
 
         val episodesUrl = "$mainUrl/api/frontend/anime/$siteId/episodes"
         val epResponse = app.get(episodesUrl, headers = mapOf("X-Requested-With" to "XMLHttpRequest")).parsedSafe<EpisodesResponse>()
@@ -141,65 +126,33 @@ class AniDb : MainAPI() {
         val malId = doc.selectFirst("a[href*=myanimelist.net/anime/]")?.attr("href")?.substringAfter("anime/")?.substringBefore("/")?.toIntOrNull()
         val anilistId = doc.selectFirst("a[href*=anilist.co/anime/]")?.attr("href")?.substringAfter("anime/")?.substringBefore("/")?.toIntOrNull()
 
-        val syncMetaData = if (anilistId != null) {
-            app.get("https://api.ani.zip/mappings?anilist_id=$anilistId").text
-        } else if (malId != null) {
-            app.get("https://api.ani.zip/mappings?mal_id=$malId").text
-        } else null
-
-        val animeMetaData = syncMetaData?.let { parseAnimeData(it) }
-
         val isMovie = doc.selectFirst("a[class*=badge-orange][href*=/browse?type=Movie]") != null
 
         episodesList.forEachIndexed { index, ep ->
             val num = index + 1
-            val metaEp = animeMetaData?.episodes?.get(num.toString())
-
-            val epName = metaEp?.title?.get("en") ?: metaEp?.title?.get("x-jat") ?: metaEp?.title?.get("ja") ?: "Episode $num"
-            val epDesc = metaEp?.overview
-            val epPoster = metaEp?.image
-            val epRating = metaEp?.rating?.let { Score.from10(it) }
-            val epRuntime = metaEp?.runtime
-            val epAirDate = metaEp?.airDateUtc
-
+            
             if (isMovie) {
                 subEpisodes.add(newEpisode("${ep.id}|$slug|movie") {
                     this.episode = num
-                    this.name = epName
-                    this.description = epDesc
-                    this.posterUrl = epPoster
-                    if (epRating != null) this.score = epRating
-                    this.runTime = epRuntime
-                    this.addDate(epAirDate)
+                    this.name = "Movie"
                 })
             } else {
                 if (hasSub) {
                     subEpisodes.add(newEpisode("${ep.id}|$slug|sub") {
                         this.episode = num
-                        this.name = epName
-                        this.description = epDesc
-                        this.posterUrl = epPoster
-                        if (epRating != null) this.score = epRating
-                        this.runTime = epRuntime
-                        this.addDate(epAirDate)
+                        this.name = "Episode $num"
                     })
                 }
                 if (hasDub) {
                     dubEpisodes.add(newEpisode("${ep.id}|$slug|dub") {
                         this.episode = num
-                        this.name = epName
-                        this.description = epDesc
-                        this.posterUrl = epPoster
-                        if (epRating != null) this.score = epRating
-                        this.runTime = epRuntime
-                        this.addDate(epAirDate)
+                        this.name = "Episode $num"
                     })
                 }
             }
         }
 
         val tvType = if (isMovie) TvType.AnimeMovie else TvType.Anime
-
         val trailerUrl = doc.selectFirst("a[href*=youtube.com/watch]")?.attr("href")
 
         val statusText = doc.selectFirst("a[class*=badge][href*=/browse?status=]")?.text()
@@ -209,32 +162,16 @@ class AniDb : MainAPI() {
             else -> null
         }
 
-        val durationText = doc.select("div.flex.flex-wrap.gap-x-6 span").firstOrNull { it.text().contains("m") || it.text().contains("h") }?.text()
-        val duration = durationText?.let {
-            if (it.contains("h") && it.contains("m")) {
-                val h = it.substringBefore("h").toIntOrNull() ?: 0
-                val m = it.substringAfter("h").substringBefore("m").trim().toIntOrNull() ?: 0
-                h * 60 + m
-            } else if (it.contains("h")) {
-                (it.substringBefore("h").toIntOrNull() ?: 0) * 60
-            } else {
-                it.substringBefore("m").trim().toIntOrNull()
-            }
-        }
-
         return newAnimeLoadResponse(title, url, tvType) {
             this.posterUrl = poster
             this.plot = description
             this.year = year
             this.tags = tags
             this.showStatus = showStatus
-            this.duration = duration
-            if (rating != null) {
-                this.score = Score.from10(rating.toString())
-            }
             addMalId(malId)
             addAniListId(anilistId)
             addTrailer(trailerUrl)
+            
             if (isMovie) {
                 addEpisodes(DubStatus.Subbed, subEpisodes)
             } else {
@@ -274,8 +211,8 @@ class AniDb : MainAPI() {
             Regex("""["'](https?://[^"']+\.m3u8[^"']*)["']""", RegexOption.IGNORE_CASE)
         )
 
-        langsToExtract.amap { language ->
-            val embedUrl = language.embed_url ?: return@amap
+        langsToExtract.forEach { language ->
+            val embedUrl = language.embed_url ?: return@forEach
             val embedDoc = app.get(embedUrl, headers = mapOf("Referer" to "$mainUrl/")).text
 
             var hlsUrl: String? = null
