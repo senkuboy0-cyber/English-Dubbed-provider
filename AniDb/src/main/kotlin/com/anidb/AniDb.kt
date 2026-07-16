@@ -1,6 +1,5 @@
 package com.anidb
 
-import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.AnimeSearchResponse
 import com.lagradost.cloudstream3.DubStatus
 import com.lagradost.cloudstream3.Episode
@@ -31,39 +30,6 @@ import com.lagradost.cloudstream3.utils.M3u8Helper.Companion.generateM3u8
 import com.lagradost.cloudstream3.utils.loadExtractor
 import org.jsoup.nodes.Document
 
-// --- TMDB API Constants ---
-const val TMDB_API = "https://api.themoviedb.org/3"
-const val TMDB_KEY = "1865f43a0549ca50d341dd9ab8b29f49"
-const val TMDB_IMG = "https://image.tmdb.org/t/p/original"
-
-// --- TMDB Data Classes ---
-data class TmdbImages(
-    @JsonProperty("logos") val logos: List<TmdbImage>? = null,
-    @JsonProperty("backdrops") val backdrops: List<TmdbImage>? = null,
-    @JsonProperty("posters") val posters: List<TmdbImage>? = null
-)
-data class TmdbImage(
-    @JsonProperty("file_path") val filePath: String? = null,
-    @JsonProperty("iso_639_1") val lang: String? = null
-)
-data class TmdbFind(
-    @JsonProperty("movie_results") val movies: List<TmdbResult>? = null,
-    @JsonProperty("tv_results") val tvShows: List<TmdbResult>? = null
-)
-data class TmdbResult(
-    @JsonProperty("id") val id: Int? = null,
-    @JsonProperty("media_type") val mediaType: String? = null,
-    @JsonProperty("title") val title: String? = null,
-    @JsonProperty("name") val name: String? = null,
-    @JsonProperty("release_date") val releaseDate: String? = null,
-    @JsonProperty("first_air_date") val firstAirDate: String? = null
-)
-data class TmdbSearch(
-    @JsonProperty("results") val results: List<TmdbResult>? = null
-)
-data class TmdbAssets(val poster: String?, val logo: String?, val backdrop: String?)
-// -------------------------
-
 class AniDb : MainAPI() {
     override var mainUrl = "https://anidb.app"
     override var name = "AniDB"
@@ -85,134 +51,16 @@ class AniDb : MainAPI() {
         "https://anidb.app/themes/13" to "Cast"
     )
 
-    // --- Helper Functions for Title & TMDB Logic ---
-    private fun cleanTitleForTmdb(rawTitle: String): String {
-        // Cuts "Season" and everything after it. E.g., "Clevatess Season 2" -> "Clevatess"
-        return rawTitle.substringBeforeLast(delimiter = " Season").trim()
-    }
-
-    private fun encodeUri(text: String): String {
-        return text.replace("%", "%25").replace(" ", "%20").replace("#", "%23")
-            .replace("&", "%26").replace("?", "%3F").replace("=", "%3D")
-            .replace(":", "%3A").replace("/", "%2F").replace("'", "%27")
-            .replace("\"", "%22").replace(",", "%2C")
-    }
-
-    private fun normalizeTitle(s: String?): String {
-        return s?.replace(Regex("[^a-zA-Z0-9]"), "")?.lowercase() ?: ""
-    }
-
-    private fun getResultYear(result: TmdbResult): Int? {
-        return (result.releaseDate ?: result.firstAirDate)?.substringBefore("-")?.toIntOrNull()
-    }
-
-    private fun yearMatches(tmdbYear: Int?, siteYear: Int?): Boolean {
-        if (siteYear == null || tmdbYear == null) return true
-        return Math.abs(tmdbYear - siteYear) <= 1
-    }
-
-    private fun pickBestResult(candidates: List<TmdbResult>, siteYear: Int?): TmdbResult? {
-        if (candidates.isEmpty()) return null
-        if (siteYear == null || candidates.size == 1) return candidates.first()
-        return candidates.firstOrNull { yearMatches(getResultYear(it), siteYear) }
-            ?: candidates.first()
-    }
-
-    private suspend fun fetchTmdbAssets(title: String, isSeries: Boolean, year: Int?, externalId: String? = null, externalSource: String? = null): TmdbAssets {
-        return try {
-            var tmdbId: Int? = null
-            var actualMediaType = if (isSeries) "tv" else "movie"
-
-            // 1. Try finding by External ID first (MAL or AniList acting as IMDB equivalent)
-            if (externalId != null && externalSource != null) {
-                // TMDB supports tvdb_id, imdb_id. It doesn't support MAL directly in multi-search find.
-                // However, we will try to find using the Title + Year as priority since it's anime.
-            }
-
-            // 2. Search by Title
-            if (tmdbId == null) {
-                val safeTitle = encodeUri(title)
-                val searchRes = app.get("$TMDB_API/search/multi?api_key=$TMDB_KEY&query=$safeTitle").parsedSafe<TmdbSearch>()
-                val validResults = searchRes?.results?.filter { it.mediaType == "movie" || it.mediaType == "tv" }
-                
-                val normTitle = normalizeTitle(title)
-                
-                val exactCandidates = validResults?.filter { normalizeTitle(it.title) == normTitle || normalizeTitle(it.name) == normTitle } ?: emptyList()
-                val exactMatch = pickBestResult(exactCandidates, year)
-
-                if (exactMatch != null) {
-                    tmdbId = exactMatch.id
-                    actualMediaType = exactMatch.mediaType ?: actualMediaType
-                } else {
-                    val startsWithCandidates = if (normTitle.length >= 5) {
-                        validResults?.filter { normalizeTitle(it.title ?: it.name).startsWith(normTitle) } ?: emptyList()
-                    } else emptyList()
-                    
-                    val startsWithMatch = pickBestResult(startsWithCandidates, year)
-                    if (startsWithMatch != null) {
-                        tmdbId = startsWithMatch.id
-                        actualMediaType = startsWithMatch.mediaType ?: actualMediaType
-                    }
-                }
-            }
-
-            if (tmdbId == null) return TmdbAssets(null, null, null)
-
-            // 3. Fetch Images based on ID
-            val images = app.get("$TMDB_API/$actualMediaType/$tmdbId/images?api_key=$TMDB_KEY").parsedSafe<TmdbImages>()
-
-            // Poster: en -> null -> bn -> hi -> first
-            val poster = images?.posters?.firstOrNull { it.lang == "en" }
-                ?: images?.posters?.firstOrNull { it.lang == null }
-                ?: images?.posters?.firstOrNull { it.lang == "bn" }
-                ?: images?.posters?.firstOrNull { it.lang == "hi" }
-                ?: images?.posters?.firstOrNull()
-
-            // Logo: en -> null -> bn -> hi -> first
-            val logo = images?.logos?.firstOrNull { it.lang == "en" }
-                ?: images?.logos?.firstOrNull { it.lang == null }
-                ?: images?.logos?.firstOrNull { it.lang == "bn" }
-                ?: images?.logos?.firstOrNull { it.lang == "hi" }
-                ?: images?.logos?.firstOrNull()
-
-            // Backdrop: null -> en -> bn -> hi -> first
-            val backdrop = images?.backdrops?.firstOrNull { it.lang == null }
-                ?: images?.backdrops?.firstOrNull { it.lang == "en" }
-                ?: images?.backdrops?.firstOrNull { it.lang == "bn" }
-                ?: images?.backdrops?.firstOrNull { it.lang == "hi" }
-                ?: images?.backdrops?.firstOrNull()
-
-            val posterUrl = poster?.filePath?.let { "$TMDB_IMG$it" }
-            val logoUrl = logo?.filePath?.let { "$TMDB_IMG$it" }
-            val backdropUrl = backdrop?.filePath?.let { "$TMDB_IMG$it" }
-
-            TmdbAssets(posterUrl, logoUrl, backdropUrl)
-
-        } catch (e: Exception) {
-            TmdbAssets(null, null, null)
-        }
-    }
-
-    private suspend fun searchResponseBuilderWithTmdb(res: Document): List<AnimeSearchResponse> {
+    private fun searchResponseBuilder(res: Document): List<AnimeSearchResponse> {
         val results = mutableListOf<AnimeSearchResponse>()
-        val elements = res.select("a.anime-card").toList()
-        
-        elements.amap { item ->
-            val rawTitle = item.attr("title") ?: return@amap
+        res.select("a.anime-card").forEach { item ->
+            val title = item.attr("title")
             val url = item.attr("href")
-            val originalPoster = item.selectFirst("img")?.attr("src")
+            val posterUrl = item.selectFirst("img")?.attr("src")
             val ratingText = item.selectFirst("span.badge-gray")?.ownText()?.trim()
             val rating = ratingText?.replace(Regex("[^0-9.]"), "")?.toDoubleOrNull()
-            
-            // TMDB Logic
-            val cleanTitle = cleanTitleForTmdb(rawTitle)
-            val isSeries = !url.contains("movie", ignoreCase = true)
-            // Note: Year is not easily available on search cards, so we pass null for Year here
-            val tmdbAssets = fetchTmdbAssets(cleanTitle, isSeries, null)
-            val finalPoster = tmdbAssets.poster ?: originalPoster
-
-            results += newAnimeSearchResponse(rawTitle, url) {
-                this.posterUrl = finalPoster
+            results += newAnimeSearchResponse(title, url) {
+                this.posterUrl = posterUrl
                 if (rating != null) {
                     this.score = Score.from10(rating.toString())
                 }
@@ -225,14 +73,13 @@ class AniDb : MainAPI() {
         val separator = if (request.data.contains("?")) "&" else "?"
         val url = "${request.data}${separator}page=$page"
         val res = app.get(url).document
-        val searchRes = searchResponseBuilderWithTmdb(res)
+        val searchRes = searchResponseBuilder(res)
         return newHomePageResponse(request.name, searchRes)
     }
 
     override suspend fun search(query: String, page: Int): SearchResponseList {
         val browseRes = app.get("$mainUrl/browse?q=$query").document
-        val searchRes = searchResponseBuilderWithTmdb(browseRes)
-        return searchRes.toNewSearchResponseList()
+        return searchResponseBuilder(browseRes).toNewSearchResponseList()
     }
 
     override suspend fun load(url: String): LoadResponse? {
@@ -240,8 +87,8 @@ class AniDb : MainAPI() {
         val siteId = slug.substringAfterLast("-").toIntOrNull() ?: return null
 
         val doc = app.get(url).document
-        val rawTitle = doc.selectFirst("h1")?.text() ?: ""
-        val originalPoster = doc.selectFirst("div.flex-shrink-0 img")?.attr("src")
+        val title = doc.selectFirst("h1")?.text() ?: ""
+        val poster = doc.selectFirst("div.flex-shrink-0 img")?.attr("src")
             ?: doc.selectFirst("meta[property=og:image]")?.attr("content")
         val description = doc.selectFirst("meta[name=description]")?.attr("content")
             ?: doc.selectFirst(".description")?.text()
@@ -250,17 +97,6 @@ class AniDb : MainAPI() {
         val year = doc.selectFirst("a[href*=&year=]")?.text()?.split(" ")?.lastOrNull()?.toIntOrNull()
         val ratingText = doc.select("span.badge-gray").firstOrNull { it.text().contains(Regex("[0-9]")) }?.ownText()?.trim()
         val rating = ratingText?.replace(Regex("[^0-9.]"), "")?.toDoubleOrNull()
-        
-        val isMovie = doc.selectFirst("a[class*=badge-orange][href*=/browse?type=Movie]") != null
-        val tvType = if (isMovie) TvType.AnimeMovie else TvType.Anime
-
-        // TMDB Extraction
-        val cleanTitle = cleanTitleForTmdb(rawTitle)
-        val tmdbAssets = fetchTmdbAssets(cleanTitle, !isMovie, year)
-        
-        val finalPoster = tmdbAssets.poster ?: originalPoster
-        val finalBackdrop = tmdbAssets.backdrop ?: finalPoster
-        val finalLogo = tmdbAssets.logo
 
         val episodesUrl = "$mainUrl/api/frontend/anime/$siteId/episodes"
         val epResponse = app.get(episodesUrl, headers = mapOf("X-Requested-With" to "XMLHttpRequest")).parsedSafe<EpisodesResponse>()
@@ -291,6 +127,8 @@ class AniDb : MainAPI() {
         } else null
 
         val animeMetaData = syncMetaData?.let { parseAnimeData(it) }
+
+        val isMovie = doc.selectFirst("a[class*=badge-orange][href*=/browse?type=Movie]") != null
 
         episodesList.forEachIndexed { index, ep ->
             val num = index + 1
@@ -339,6 +177,8 @@ class AniDb : MainAPI() {
             }
         }
 
+        val tvType = if (isMovie) TvType.AnimeMovie else TvType.Anime
+
         val trailerUrl = doc.selectFirst("a[href*=youtube.com/watch]")?.attr("href")
 
         val statusText = doc.selectFirst("a[class*=badge][href*=/browse?status=]")?.text()
@@ -361,10 +201,8 @@ class AniDb : MainAPI() {
             }
         }
 
-        return newAnimeLoadResponse(rawTitle, url, tvType) {
-            this.posterUrl = finalPoster
-            this.backgroundPosterUrl = finalBackdrop
-            this.logoUrl = finalLogo
+        return newAnimeLoadResponse(title, url, tvType) {
+            this.posterUrl = poster
             this.plot = description
             this.year = year
             this.tags = tags
