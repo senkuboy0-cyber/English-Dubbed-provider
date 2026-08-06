@@ -177,6 +177,7 @@ class AniDb : MainAPI() {
 
             val images = app.get("$TMDB_API/$actualMediaType/$tmdbId/images?api_key=$TMDB_KEY").parsedSafe<TmdbImages>()
 
+            // Safe SVG filtering for Cloudstream
             val validLogos = images?.logos?.filter { 
                 val path = it.filePath ?: ""
                 !path.endsWith(".svg") && !path.endsWith(".SVG") 
@@ -276,6 +277,7 @@ class AniDb : MainAPI() {
             app.get("https://api.ani.zip/mappings?mal_id=$malId").text
         } else null
 
+        // This requires parseAnimeData method which is from your original code base
         val animeMetaData = syncMetaData?.let { parseAnimeData(it) }
 
         val isMovie = doc.selectFirst("a[class*=badge-orange][href*=/browse?type=Movie]") != null
