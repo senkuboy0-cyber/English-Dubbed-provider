@@ -1,5 +1,6 @@
 package com.anidb
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.AnimeSearchResponse
 import com.lagradost.cloudstream3.DubStatus
 import com.lagradost.cloudstream3.Episode
@@ -7,7 +8,6 @@ import com.lagradost.cloudstream3.HomePageResponse
 import com.lagradost.cloudstream3.LoadResponse
 import com.lagradost.cloudstream3.LoadResponse.Companion.addAniListId
 import com.lagradost.cloudstream3.LoadResponse.Companion.addMalId
-import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
 import com.lagradost.cloudstream3.MainAPI
 import com.lagradost.cloudstream3.MainPageRequest
 import com.lagradost.cloudstream3.Score
@@ -30,6 +30,34 @@ import com.lagradost.cloudstream3.utils.M3u8Helper.Companion.generateM3u8
 import com.lagradost.cloudstream3.utils.loadExtractor
 import org.jsoup.nodes.Document
 
+// --- TMDB Data Classes ---
+data class TmdbImages(
+    @JsonProperty("logos") val logos: List<TmdbImage>? = null,
+    @JsonProperty("backdrops") val backdrops: List<TmdbImage>? = null
+)
+data class TmdbImage(
+    @JsonProperty("file_path") val filePath: String? = null,
+    @JsonProperty("iso_639_1") val lang: String? = null
+)
+data class TmdbSearch(
+    @JsonProperty("results") val results: List<TmdbResult>? = null
+)
+data class TmdbResult(
+    @JsonProperty("id") val id: Int? = null,
+    @JsonProperty("media_type") val mediaType: String? = null,
+    @JsonProperty("title") val title: String? = null,
+    @JsonProperty("name") val name: String? = null,
+    @JsonProperty("release_date") val releaseDate: String? = null,
+    @JsonProperty("first_air_date") val firstAirDate: String? = null
+)
+data class TmdbDetails(
+    val id: Int?, 
+    val type: String?, 
+    val logo: String?, 
+    val backdrop: String?
+)
+// -------------------------
+
 class AniDb : MainAPI() {
     override var mainUrl = "https://anidb.app"
     override var name = "AniDB"
@@ -50,6 +78,113 @@ class AniDb : MainAPI() {
         "https://anidb.app/browse?type=OVA&sort=order_top" to "Top OVA",
         "https://anidb.app/themes/13" to "Cast"
     )
+
+    // --- TMDB Config & Helpers ---
+    private val TMDB_API = "https://api.themoviedb.org/3"
+    private val TMDB_KEY = "1865f43a0549ca50d341dd9ab8b29f49"
+    private val TMDB_IMG = "https://image.tmdb.org/t/p/original"
+    private val normalizeRegex = Regex("[^a-zA-Z0-9]")
+
+    private fun encodeUri(text: String): String {
+        return text.replace("%", "%25").replace(" ", "%20").replace("#", "%23")
+            .replace("&", "%26").replace("?", "%3F").replace("=", "%3D")
+            .replace(":", "%3A").replace("/", "%2F").replace("'", "%27")
+            .replace("\"", "%22").replace(",", "%2C")
+    }
+
+    private fun normalizeTitle(s: String?): String {
+        return s?.replace(normalizeRegex, "")?.lowercase() ?: ""
+    }
+
+    private fun getResultYear(result: TmdbResult): Int? {
+        return (result.releaseDate ?: result.firstAirDate)?.substringBefore("-")?.toIntOrNull()
+    }
+
+    private fun yearMatches(tmdbYear: Int?, siteYear: Int?): Boolean {
+        if (siteYear == null || tmdbYear == null) return true
+        return Math.abs(tmdbYear - siteYear) <= 1
+    }
+
+    private fun pickBestResult(candidates: List<TmdbResult>, siteYear: Int?): TmdbResult? {
+        if (candidates.isEmpty()) return null
+        if (siteYear == null || candidates.size == 1) return candidates.first()
+        return candidates.firstOrNull { yearMatches(getResultYear(it), siteYear) } ?: candidates.first()
+    }
+
+    private fun cleanTitleText(title: String): String {
+        var clean = title
+
+        clean = clean.replace(Regex("(?i)(?:\\s*-)?\\s*Season\\s+\\d+(?:\\s+Part\\s+\\d+)?.*$"), "")
+        clean = clean.replace(Regex("(?i)\\s+(?:One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|\\d+)?\\s*Specials?(?:\\s+(?:One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|\\d+))?.*$"), "")
+        clean = clean.replace(Regex("(?i)\\s+(?:OVA|Omake).*$"), "")
+        clean = clean.replace(Regex("(?i)\\s+(?:One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten)$"), "")
+        clean = clean.replace(Regex("\\s*-$"), "")
+
+        return clean.trim()
+    }
+
+    private suspend fun fetchTmdbDetails(title: String, isSeries: Boolean, year: Int?): TmdbDetails {
+        return try {
+            var tmdbId: Int? = null
+            var actualMediaType = if (isSeries) "tv" else "movie"
+
+            val safeTitle = encodeUri(title)
+            val searchRes = app.get("$TMDB_API/search/multi?api_key=$TMDB_KEY&query=$safeTitle").parsedSafe<TmdbSearch>()
+            
+            val validResults = searchRes?.results?.filter { it.mediaType == "movie" || it.mediaType == "tv" }
+            val normTitle = normalizeTitle(title)
+
+            val exactCandidates = validResults?.filter {
+                normalizeTitle(it.title) == normTitle || normalizeTitle(it.name) == normTitle
+            } ?: emptyList()
+
+            val exactMatch = pickBestResult(exactCandidates, year)
+
+            if (exactMatch != null) {
+                tmdbId = exactMatch.id
+                actualMediaType = exactMatch.mediaType ?: actualMediaType
+            } else {
+                val startsWithCandidates = if (normTitle.length >= 6) {
+                    validResults?.filter { result ->
+                        val tmdbNorm = normalizeTitle(result.title ?: result.name)
+                        tmdbNorm.startsWith(normTitle)
+                    } ?: emptyList()
+                } else emptyList()
+
+                val startsWithMatch = pickBestResult(startsWithCandidates, year)
+                if (startsWithMatch != null) {
+                    tmdbId = startsWithMatch.id
+                    actualMediaType = startsWithMatch.mediaType ?: actualMediaType
+                }
+            }
+
+            if (tmdbId == null) return TmdbDetails(null, null, null, null)
+
+            val images = app.get("$TMDB_API/$actualMediaType/$tmdbId/images?api_key=$TMDB_KEY").parsedSafe<TmdbImages>()
+
+            val validLogos = images?.logos?.filter { 
+                val path = it.filePath ?: ""
+                !path.endsWith(".svg") && !path.endsWith(".SVG") 
+            }
+
+            val logo = validLogos?.firstOrNull { it.lang == "en" }
+                ?: validLogos?.firstOrNull { it.lang == null }
+                ?: validLogos?.firstOrNull { it.lang == "ja" }
+                ?: validLogos?.firstOrNull()
+
+            val backdrop = images?.backdrops?.firstOrNull { it.lang == null }
+                ?: images?.backdrops?.firstOrNull { it.lang == "en" }
+                ?: images?.backdrops?.firstOrNull()
+
+            val logoUrl = logo?.filePath?.let { "$TMDB_IMG$it" }
+            val backdropUrl = backdrop?.filePath?.let { "$TMDB_IMG$it" }
+
+            TmdbDetails(tmdbId, actualMediaType, logoUrl, backdropUrl)
+        } catch (e: Exception) {
+            TmdbDetails(null, null, null, null)
+        }
+    }
+    // -----------------------------
 
     private fun searchResponseBuilder(res: Document): List<AnimeSearchResponse> {
         val results = mutableListOf<AnimeSearchResponse>()
@@ -179,8 +314,6 @@ class AniDb : MainAPI() {
 
         val tvType = if (isMovie) TvType.AnimeMovie else TvType.Anime
 
-        val trailerUrl = doc.selectFirst("a[href*=youtube.com/watch]")?.attr("href")
-
         val statusText = doc.selectFirst("a[class*=badge][href*=/browse?status=]")?.text()
         val showStatus = when (statusText) {
             "Finished Airing" -> ShowStatus.Completed
@@ -201,8 +334,14 @@ class AniDb : MainAPI() {
             }
         }
 
+        // Clean title dynamically and fetch TMDB Data
+        val tmdbTitle = cleanTitleText(title)
+        val tmdbDetails = fetchTmdbDetails(tmdbTitle, !isMovie, year)
+
         return newAnimeLoadResponse(title, url, tvType) {
             this.posterUrl = poster
+            this.backgroundPosterUrl = tmdbDetails.backdrop ?: poster
+            this.logoUrl = tmdbDetails.logo
             this.plot = description
             this.year = year
             this.tags = tags
@@ -213,7 +352,7 @@ class AniDb : MainAPI() {
             }
             addMalId(malId)
             addAniListId(anilistId)
-            addTrailer(trailerUrl)
+            
             if (isMovie) {
                 addEpisodes(DubStatus.Subbed, subEpisodes)
             } else {
