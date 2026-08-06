@@ -114,11 +114,26 @@ class AniDb : MainAPI() {
     private fun cleanTitleText(title: String): String {
         var clean = title
 
-        clean = clean.replace(Regex("(?i)(?:\\s*-)?\\s*Season\\s+\\d+(?:\\s+Part\\s+\\d+)?.*$"), "")
-        clean = clean.replace(Regex("(?i)\\s+(?:One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|\\d+)?\\s*Specials?(?:\\s+(?:One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|\\d+))?.*$"), "")
-        clean = clean.replace(Regex("(?i)\\s+(?:OVA|Omake).*$"), "")
-        clean = clean.replace(Regex("(?i)\\s+(?:One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten)$"), "")
-        clean = clean.replace(Regex("\\s*-$"), "")
+        clean = clean.replace(Regex("""\s*[\(\[].*?[\)\]]"""), "")
+
+        var previous: String
+        do {
+            previous = clean
+            
+            clean = clean.replace(Regex("""(?i)(?:[:\-]\s*)?(?:\d+(?:st|nd|rd|th)\s+Season|Season\s+\d+|Part\s+\d+)(?:\s+Part\s+\d+)?\s*$"""), "")
+            clean = clean.replace(Regex("""(?i)(?:[:\-]\s*)?(?:The\s+Final|Final\s+Season)\s*$"""), "")
+            clean = clean.replace(Regex("""(?i)(?:[:\-]\s*)?(?:OVA|Omake)\s*$"""), "")
+            
+            val numWords = "(?:One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|\\d+)"
+            val specials = "(?:Specials?)"
+            clean = clean.replace(Regex("""(?i)(?:[:\-]\s+|\s+)?(?:(?:$numWords\s+$specials)|(?:$specials\s+$numWords)|$specials|$numWords)\s*$"""), "")
+            
+            clean = clean.replace(Regex("""(?i)(?:[:\-]\s+|\s+)(?:I{1,3}|IV|V|VI{1,3}|IX|X)\s*$"""), "")
+            
+            clean = clean.trim()
+        } while (clean != previous)
+
+        clean = clean.replace(Regex("""(?i)[\s\-:]+$"""), "")
 
         return clean.trim()
     }
@@ -334,7 +349,6 @@ class AniDb : MainAPI() {
             }
         }
 
-        // Clean title dynamically and fetch TMDB Data
         val tmdbTitle = cleanTitleText(title)
         val tmdbDetails = fetchTmdbDetails(tmdbTitle, !isMovie, year)
 
