@@ -177,7 +177,6 @@ class AniDb : MainAPI() {
 
             val images = app.get("$TMDB_API/$actualMediaType/$tmdbId/images?api_key=$TMDB_KEY").parsedSafe<TmdbImages>()
 
-            // Safe SVG filtering for Cloudstream
             val validLogos = images?.logos?.filter { 
                 val path = it.filePath ?: ""
                 !path.endsWith(".svg") && !path.endsWith(".SVG") 
@@ -248,26 +247,7 @@ class AniDb : MainAPI() {
         val year = doc.selectFirst("a[href*=&year=]")?.text()?.split(" ")?.lastOrNull()?.toIntOrNull()
         val ratingText = doc.select("span.badge-gray").firstOrNull { it.text().contains(Regex("[0-9]")) }?.ownText()?.trim()
         val rating = ratingText?.replace(Regex("[^0-9.]"), "")?.toDoubleOrNull()
-
-        val episodesUrl = "$mainUrl/api/frontend/anime/$siteId/episodes"
-        val epResponse = app.get(episodesUrl, headers = mapOf("X-Requested-With" to "XMLHttpRequest")).parsedSafe<EpisodesResponse>()
-        val episodesList = epResponse?.episodes ?: emptyList()
-
-        val firstEpId = episodesList.firstOrNull()?.id
-        var hasSub = true
-        var hasDub = false
-
-        if (firstEpId != null) {
-            val langUrl = "$mainUrl/api/frontend/episode/$firstEpId/languages"
-            val langResponse = app.get(langUrl, headers = mapOf("X-Requested-With" to "XMLHttpRequest")).parsedSafe<LanguagesResponse>()
-            val langs = langResponse?.languages ?: emptyList()
-            hasSub = langs.isEmpty() || langs.any { it.code?.lowercase() in listOf("jpn", "ja", "japanese") || it.name?.lowercase() in listOf("jpn", "ja", "japanese") }
-            hasDub = langs.any { it.code?.lowercase() in listOf("eng", "en", "english") || it.name?.lowercase() in listOf("eng", "en", "english") }
-        }
-
-        val subEpisodes = mutableListOf<Episode>()
-        val dubEpisodes = mutableListOf<Episode>()
-
+        
         val malId = doc.selectFirst("a[href*=myanimelist.net/anime/]")?.attr("href")?.substringAfter("anime/")?.substringBefore("/")?.toIntOrNull()
         val anilistId = doc.selectFirst("a[href*=anilist.co/anime/]")?.attr("href")?.substringAfter("anime/")?.substringBefore("/")?.toIntOrNull()
 
@@ -277,47 +257,69 @@ class AniDb : MainAPI() {
             app.get("https://api.ani.zip/mappings?mal_id=$malId").text
         } else null
 
-        // This requires parseAnimeData method which is from your original code base
         val animeMetaData = syncMetaData?.let { parseAnimeData(it) }
-
         val isMovie = doc.selectFirst("a[class*=badge-orange][href*=/browse?type=Movie]") != null
 
-        episodesList.forEachIndexed { index, ep ->
-            val num = index + 1
-            val metaEp = animeMetaData?.episodes?.get(num.toString())
-
-            val epName = metaEp?.title?.get("en") ?: metaEp?.title?.get("x-jat") ?: metaEp?.title?.get("ja") ?: "Episode $num"
-            val epDesc = metaEp?.overview
-            val epPoster = metaEp?.image
-            val epRating = metaEp?.rating?.let { Score.from10(it) }
-            val epRuntime = metaEp?.runtime
-            val epAirDate = metaEp?.airDateUtc
-
-            if (isMovie) {
-                subEpisodes.add(newEpisode("${ep.id}|$slug|movie") {
-                    this.episode = num
-                    this.name = epName
-                    this.description = epDesc
-                    this.posterUrl = epPoster
-                    if (epRating != null) this.score = epRating
-                    this.runTime = epRuntime
-                    this.addDate(epAirDate)
-                })
-            } else {
-                if (hasSub) {
-                    subEpisodes.add(newEpisode("${ep.id}|$slug|sub") {
-                        this.episode = num
-                        this.name = epName
-                        this.description = epDesc
-                        this.posterUrl = epPoster
-                        if (epRating != null) this.score = epRating
-                        this.runTime = epRuntime
-                        this.addDate(epAirDate)
-                    })
+        val seasons = mutableListOf<SeasonData>()
+        try {
+            val seasonContainer = doc.select("div.bg-card").firstOrNull { it.select("h3").text().contains("Seasons", true) }
+            if (seasonContainer != null) {
+                val links = seasonContainer.select("a[href]")
+                for (link in links) {
+                    val sUrl = link.attr("href")
+                    val sSlug = sUrl.substringAfterLast("/")
+                    val sId = sSlug.substringAfterLast("-").toIntOrNull()
+                    val sNumText = link.select("span.absolute.top-2.left-2").text().trim()
+                    val sNum = sNumText.toIntOrNull()
+                    
+                    if (sId != null && sNum != null) {
+                        seasons.add(SeasonData(sId, sSlug, sNum))
+                    }
                 }
-                if (hasDub) {
-                    dubEpisodes.add(newEpisode("${ep.id}|$slug|dub") {
+            }
+        } catch (e: Exception) {
+            // Safe fallback
+        }
+
+        if (seasons.isEmpty()) {
+            seasons.add(SeasonData(siteId, slug, 1))
+        }
+
+        val subEpisodes = mutableListOf<Episode>()
+        val dubEpisodes = mutableListOf<Episode>()
+
+        for (season in seasons) {
+            val episodesUrl = "$mainUrl/api/frontend/anime/${season.id}/episodes"
+            val epResponse = app.get(episodesUrl, headers = mapOf("X-Requested-With" to "XMLHttpRequest")).parsedSafe<EpisodesResponse>()
+            val episodesList = epResponse?.episodes ?: emptyList()
+
+            val firstEpId = episodesList.firstOrNull()?.id
+            var hasSub = true
+            var hasDub = false
+
+            if (firstEpId != null) {
+                val langUrl = "$mainUrl/api/frontend/episode/$firstEpId/languages"
+                val langResponse = app.get(langUrl, headers = mapOf("X-Requested-With" to "XMLHttpRequest")).parsedSafe<LanguagesResponse>()
+                val langs = langResponse?.languages ?: emptyList()
+                hasSub = langs.isEmpty() || langs.any { it.code?.lowercase() in listOf("jpn", "ja", "japanese") || it.name?.lowercase() in listOf("jpn", "ja", "japanese") }
+                hasDub = langs.any { it.code?.lowercase() in listOf("eng", "en", "english") || it.name?.lowercase() in listOf("eng", "en", "english") }
+            }
+
+            episodesList.forEachIndexed { index, ep ->
+                val num = index + 1
+                val metaEp = animeMetaData?.episodes?.get(num.toString())
+
+                val epName = metaEp?.title?.get("en") ?: metaEp?.title?.get("x-jat") ?: metaEp?.title?.get("ja") ?: "Episode $num"
+                val epDesc = metaEp?.overview
+                val epPoster = metaEp?.image
+                val epRating = metaEp?.rating?.let { Score.from10(it) }
+                val epRuntime = metaEp?.runtime
+                val epAirDate = metaEp?.airDateUtc
+
+                if (isMovie) {
+                    subEpisodes.add(newEpisode("${ep.id}|${season.slug}|movie") {
                         this.episode = num
+                        this.season = season.seasonNum
                         this.name = epName
                         this.description = epDesc
                         this.posterUrl = epPoster
@@ -325,6 +327,31 @@ class AniDb : MainAPI() {
                         this.runTime = epRuntime
                         this.addDate(epAirDate)
                     })
+                } else {
+                    if (hasSub) {
+                        subEpisodes.add(newEpisode("${ep.id}|${season.slug}|sub") {
+                            this.episode = num
+                            this.season = season.seasonNum
+                            this.name = epName
+                            this.description = epDesc
+                            this.posterUrl = epPoster
+                            if (epRating != null) this.score = epRating
+                            this.runTime = epRuntime
+                            this.addDate(epAirDate)
+                        })
+                    }
+                    if (hasDub) {
+                        dubEpisodes.add(newEpisode("${ep.id}|${season.slug}|dub") {
+                            this.episode = num
+                            this.season = season.seasonNum
+                            this.name = epName
+                            this.description = epDesc
+                            this.posterUrl = epPoster
+                            if (epRating != null) this.score = epRating
+                            this.runTime = epRuntime
+                            this.addDate(epAirDate)
+                        })
+                    }
                 }
             }
         }
@@ -455,5 +482,11 @@ class AniDb : MainAPI() {
 
     data class LanguagesResponse(
         val languages: List<Language>? = null
+    )
+
+    data class SeasonData(
+        val id: Int,
+        val slug: String,
+        val seasonNum: Int
     )
 }
