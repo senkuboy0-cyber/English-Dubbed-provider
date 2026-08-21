@@ -31,7 +31,7 @@
             "senkuboy0-cyber"
         ],
         "description": "Animes",
-        "fileSize": 38160,
+        "fileSize": 39980,
         "repositoryUrl": "https://github.com/senkuboy0-cyber/English-Dubbed-provider",
         "language": "en",
         "tvTypes": [
@@ -39,10 +39,10 @@
         ],
         "iconUrl": "https://anidb.app/images/fav-512.png",
         "apiVersion": 1,
-        "fileHash": "sha256-30d5d44831daef437897a8209ab107015d170f4c7e3cb9529063ba6470248916",
-        "jarFileSize": 137779,
+        "fileHash": "sha256-f8c46b5187bc05b9d805c5ef8edb364f4fbeafcde2435650d7b5725becfd7186",
+        "jarFileSize": 143403,
         "jarUrl": "https://raw.githubusercontent.com/senkuboy0-cyber/English-Dubbed-provider/builds/AniDb.jar",
-        "jarHash": "sha256-c2529ba69f600d0f11667a1d2aa072351f13eb059c2c05075b76188fd9d9ca0a"
+        "jarHash": "sha256-689bf29947f7efd10a75f17538ad5900dc1f968015a4d6a923f3feff4b39c038"
     },
     {
         "url": "https://raw.githubusercontent.com/senkuboy0-cyber/English-Dubbed-provider/builds/Anikage.cs3",
