@@ -247,22 +247,11 @@ class AniDb : MainAPI() {
         val year = doc.selectFirst("a[href*=&year=]")?.text()?.split(" ")?.lastOrNull()?.toIntOrNull()
         val ratingText = doc.select("span.badge-gray").firstOrNull { it.text().contains(Regex("[0-9]")) }?.ownText()?.trim()
         val rating = ratingText?.replace(Regex("[^0-9.]"), "")?.toDoubleOrNull()
-        
-        val malId = doc.selectFirst("a[href*=myanimelist.net/anime/]")?.attr("href")?.substringAfter("anime/")?.substringBefore("/")?.toIntOrNull()
-        val anilistId = doc.selectFirst("a[href*=anilist.co/anime/]")?.attr("href")?.substringAfter("anime/")?.substringBefore("/")?.toIntOrNull()
-
-        val syncMetaData = if (anilistId != null) {
-            app.get("https://api.ani.zip/mappings?anilist_id=$anilistId").text
-        } else if (malId != null) {
-            app.get("https://api.ani.zip/mappings?mal_id=$malId").text
-        } else null
-
-        val animeMetaData = syncMetaData?.let { parseAnimeData(it) }
         val isMovie = doc.selectFirst("a[class*=badge-orange][href*=/browse?type=Movie]") != null
 
         val seasons = mutableListOf<SeasonData>()
         try {
-            val seasonContainer = doc.select("div.bg-card").firstOrNull { it.select("h3").text().contains("Seasons", true) }
+            val seasonContainer = doc.select("div.bg-card").firstOrNull { it.select("h3").text().contains("Seasons", ignoreCase = true) }
             if (seasonContainer != null) {
                 val links = seasonContainer.select("a[href]")
                 for (link in links) {
@@ -288,7 +277,33 @@ class AniDb : MainAPI() {
         val subEpisodes = mutableListOf<Episode>()
         val dubEpisodes = mutableListOf<Episode>()
 
+        var mainMalId: Int? = null
+        var mainAnilistId: Int? = null
+
         for (season in seasons) {
+            val sDoc = if (season.id == siteId) {
+                doc
+            } else {
+                app.get("$mainUrl/anime/${season.slug}").document
+            }
+
+            val sMalId = sDoc.selectFirst("a[href*=myanimelist.net/anime/]")?.attr("href")?.substringAfter("anime/")?.substringBefore("/")?.toIntOrNull()
+            val sAnilistId = sDoc.selectFirst("a[href*=anilist.co/anime/]")?.attr("href")?.substringAfter("anime/")?.substringBefore("/")?.toIntOrNull()
+
+            if (season.id == siteId) {
+                mainMalId = sMalId
+                mainAnilistId = sAnilistId
+            }
+
+            val sSyncMetaData = if (sAnilistId != null) {
+                app.get("https://api.ani.zip/mappings?anilist_id=$sAnilistId").text
+            } else if (sMalId != null) {
+                app.get("https://api.ani.zip/mappings?mal_id=$sMalId").text
+            } else null
+
+            // This requires parseAnimeData method which is from your original code base
+            val sAnimeMetaData = sSyncMetaData?.let { parseAnimeData(it) }
+
             val episodesUrl = "$mainUrl/api/frontend/anime/${season.id}/episodes"
             val epResponse = app.get(episodesUrl, headers = mapOf("X-Requested-With" to "XMLHttpRequest")).parsedSafe<EpisodesResponse>()
             val episodesList = epResponse?.episodes ?: emptyList()
@@ -307,7 +322,7 @@ class AniDb : MainAPI() {
 
             episodesList.forEachIndexed { index, ep ->
                 val num = index + 1
-                val metaEp = animeMetaData?.episodes?.get(num.toString())
+                val metaEp = sAnimeMetaData?.episodes?.get(num.toString())
 
                 val epName = metaEp?.title?.get("en") ?: metaEp?.title?.get("x-jat") ?: metaEp?.title?.get("ja") ?: "Episode $num"
                 val epDesc = metaEp?.overview
@@ -393,8 +408,8 @@ class AniDb : MainAPI() {
             if (rating != null) {
                 this.score = Score.from10(rating.toString())
             }
-            addMalId(malId)
-            addAniListId(anilistId)
+            addMalId(mainMalId)
+            addAniListId(mainAnilistId)
             
             if (isMovie) {
                 addEpisodes(DubStatus.Subbed, subEpisodes)
